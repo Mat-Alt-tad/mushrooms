@@ -1,7 +1,7 @@
 import json
 import joblib
 import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.model_selection import train_test_split, cross_validate, StratifiedKFold, GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from src.preprocessing import Preprocesador
@@ -21,18 +21,20 @@ class MushroomModel:
             X, y, test_size=0.4, random_state=123, stratify=y  
         )
         
-        modelo = LogisticRegression(
-            max_iter=1000,
-            random_state=456,  
-            C=0.001,          
-            penalty='l2',     
-            solver='liblinear'  
-        )
-        modelo.fit(X_train, y_train)
+        param_grid = {'C': [1e-3, 1e-2, 1e-1, 1, 10]}
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=789)
+        gs = GridSearchCV(LogisticRegression(max_iter=1000, penalty='l2', solver='liblinear'),
+                  param_grid, scoring='f1', cv=cv, n_jobs=-1, refit=True)
+        gs.fit(X_train, y_train)
+        best_model = gs.best_estimator_
+        joblib.dump(best_model, "models/modelo_hongos.joblib")
         
+        modelo = best_model
+        
+        # Obtener predicciones sobre el conjunto de prueba para métricas base
         y_pred = modelo.predict(X_test)
         y_proba = modelo.predict_proba(X_test)[:, 1]
-        
+
         base_metrics = {
             "accuracy": round(accuracy_score(y_test, y_pred), 4),
             "precision": round(precision_score(y_test, y_pred), 4),
@@ -40,12 +42,28 @@ class MushroomModel:
             "f1": round(f1_score(y_test, y_pred), 4),
             "roc_auc": round(roc_auc_score(y_test, y_proba), 4)
         }
-        
-        print(" Calculando validación cruzada...")
+
+        print(" Calculando validación cruzada (múltiples métricas)...")
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=789)
-        cv_scores = cross_val_score(modelo, X_train, y_train, cv=cv, scoring='accuracy')
-        cv_mean = round(float(cv_scores.mean()), 4)
-        cv_std = round(float(cv_scores.std()), 4)
+        scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+        cv_results = cross_validate(
+            modelo, X_train, y_train,
+            cv=cv,
+            scoring=scoring,
+            n_jobs=-1,
+            return_train_score=False
+        )
+
+        cv_summary = {}
+        for metric in scoring:
+            key = f'test_{metric}'
+            mean = round(float(cv_results[key].mean()), 4)
+            std = round(float(cv_results[key].std()), 4)
+            cv_summary[metric] = {"mean": mean, "std": std}
+
+        # mantener compatibilidad con uso previo de cv_mean/cv_std (sobre accuracy)
+        cv_mean = cv_summary['accuracy']['mean']
+        cv_std = cv_summary['accuracy']['std']
         
         
         discount_factor = 1 - (cv_std * 3.0)  
@@ -76,12 +94,5 @@ class MushroomModel:
         print(f" Métricas base (sin ajuste): {base_metrics}")
         print(f" Métricas finales (con ajuste CV): {final_metrics}")
         print(f" CV Accuracy: {cv_mean} ± {cv_std}")
-        
-        joblib.dump(modelo, "models/modelo_hongos.joblib")
-        print(" Modelo guardado en 'models/modelo_hongos.joblib'")
-        
-        with open("reports/metricas.json", "w") as f:
-            json.dump(final_metrics, f, indent=2)
-        print(" Métricas guardadas en 'reports/metricas.json'")
         
         return final_metrics
