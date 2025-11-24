@@ -31,7 +31,7 @@ class MushroomModel:
         
         modelo = best_model
         
-        # Obtener predicciones sobre el conjunto de prueba para métricas base
+
         y_pred = modelo.predict(X_test)
         y_proba = modelo.predict_proba(X_test)[:, 1]
 
@@ -61,7 +61,7 @@ class MushroomModel:
             std = round(float(cv_results[key].std()), 4)
             cv_summary[metric] = {"mean": mean, "std": std}
 
-        # mantener compatibilidad con uso previo de cv_mean/cv_std (sobre accuracy)
+     
         cv_mean = cv_summary['accuracy']['mean']
         cv_std = cv_summary['accuracy']['std']
         

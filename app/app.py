@@ -231,8 +231,7 @@ def main():
             else:  # Comestible
                 st.success("✅ **EL HONGO ES COMESTIBLE**")
                 st.info("👍 **Parece seguro para el consumo**")
-            
-            # Mostrar datos utilizados
+             
             with st.expander("📋 Ver datos utilizados para la predicción"):
                 st.json(input_data)
                 
@@ -240,13 +239,13 @@ def main():
             st.error(f"❌ Error en la predicción: {e}")
             st.info("💡 Verifica que todas las características estén seleccionadas")
             
-            # Debug info
+        
             with st.expander("🔍 Información de Debug"):
                 st.write("**Error:**", str(e))
                 if 'input_data' in locals():
                     st.write("**Datos de entrada:**", input_data)
     
-    # Información adicional
+
     st.markdown("---")
     st.markdown("### 📚 Información del Proyecto")
     
@@ -275,7 +274,7 @@ def main():
         **📊 Métricas del Modelo:**
         """)
         
-        # Mostrar métricas si existen
+        
         try:
             import json
             if os.path.exists("reports/metricas.json"):
