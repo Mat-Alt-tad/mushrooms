@@ -1,7 +1,7 @@
 import pandas as pd
 
 class DataLoader:
-    """Clase encargada de cargar los datos del dataset de hongos en formato DataFrame."""
+
     def __init__(self, ruta):
         self.ruta = ruta
     
